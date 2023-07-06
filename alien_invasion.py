@@ -1,11 +1,15 @@
 import sys 
+from time import sleep
 
 import pygame
-from settings import Settings
-from ship import Ship
-from alien import Alien 
-from bullet import Bullet
-from star import Star
+
+from stats.settings import Settings
+from stats.game_stats import GameStats
+from sprites.ship import Ship
+from sprites.alien import Alien 
+from sprites.bullet import Bullet
+from sprites.star import Star
+
 from random import randint 
 
 class AlienInvasion:
@@ -14,13 +18,13 @@ class AlienInvasion:
         """Init game"""
         pygame.init()
         self.settings = Settings()
+        self.stats = GameStats(self)
 
         #screen settings
         self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.settings.screen_width = self.screen.get_rect().width
         self.settings.screen_height= self.screen.get_rect().height
-        self.bg_color = (230,230,230) 
-        self.bg = pygame.image.load('images/bg.png')
+        self.bg_color = (0, 0, 0) 
         self.star = pygame.image.load('images/star_0.png')
         pygame.display.set_caption("Alien Invasion")
 
@@ -83,10 +87,10 @@ class AlienInvasion:
 
          #max width/height of rows/cols
          available_space_x = self.settings.screen_width - (35 * alien_width)
-         number_aliens_x = available_space_x // (2 * alien_width)
+         number_aliens_x = available_space_x // (4 * alien_width)
 
          ship_height = self.ship.rect.height
-         available_space_y = (self.settings.screen_height // 6
+         available_space_y = (self.settings.screen_height // 10
                               - (3 * alien_height) - ship_height)
          number_rows = available_space_y // (2 * alien_height)
 
@@ -121,15 +125,51 @@ class AlienInvasion:
          self._check_fleet_edges()
          self.aliens.update()
 
+         if pygame.sprite.spritecollideany(self.ship, self.aliens):
+              self._check_ship_hit()
+        
+         self._check_aliens_bottom()
+
     def _update_bullets(self):
          self.bullets.update()
          """Remove bullets off screen"""
          for bullet in self.bullets.copy():
               if bullet.rect.bottom <= 0:
                    self.bullets.remove(bullet)
+
+         self._check_collisions()
+
     
+    def _check_collisions(self):
+         """Check for collisions and spawn next waves"""
+         collisions = pygame.sprite.groupcollide(self.bullets, self.aliens, False, True)
+         if not self.aliens: 
+              self.bullets.empty()
+              self._create_fleet()
+    
+    def _check_ship_hit(self):
+         """Remove a life if ship hit"""
+         if self.stats.ships_left > 0:
+            self.stats.ships_left -= 1
+            """Remove all aliens and bullets, and then pause game briefly"""
+            self.aliens.empty()
+            self.bullets.empty()
+            sleep(0.5)
+         else: 
+            self.stats.game_active = False
+
+         self._create_fleet()
+
+    def _check_aliens_bottom(self):
+         """Check if aliens hit bottom"""
+         screen_rect = self.screen.get_rect()
+         for alien in self.aliens.sprites():
+              if alien.rect.bottom >= screen_rect.bottom:
+                   self._check_ship_hit
+                   break
+
     def _draw_stars(self):
-         for x in range(100):
+         for x in range(750):
               star = Star(self)
               star.x = randint(20, self.settings.screen_width - 20)
               star.y = randint(20, self.settings.screen_height - 20)
@@ -141,6 +181,7 @@ class AlienInvasion:
         
     def _update_screen(self):
         """Update images on the screen and flip to new screen"""
+        self.screen.fill(self.bg_color)
         self.stars.draw(self.screen)
         self.ship.blitme()
         for bullet in self.bullets.sprites():
@@ -153,10 +194,13 @@ class AlienInvasion:
     def run_game(self):
         while True:
             self._check_events()
-            self.ship.update()
-            self._update_bullets()
-            self._update_aliens()
+            if self.stats.game_active:
+                self.ship.update()
+                self._update_bullets()
+                self._update_aliens()
+
             self._update_screen()
+            
 
         
                    

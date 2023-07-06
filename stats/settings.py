@@ -10,12 +10,13 @@ class Settings:
 
         #SHIP
         self.ship_speed = 3
+        self.ship_limit = 3
 
         #BULLETS
-        self.bullet_speed = 1.0
+        self.bullet_speed = 10.0
         self.max_bullets = 5
 
         #ALIENS 
-        self.alien_speed = 1.0
-        self.fleet_drop_speed = 10
+        self.alien_speed = 20.0
+        self.fleet_drop_speed = 50
         self.fleet_direction = 1
